@@ -1,11 +1,9 @@
-from typing import Required
 import discord
 from discord.ext import commands, tasks
 import json
-import re
-import asyncio
 from wallapop import WallapopClient
 from storage import Storage
+import asyncio
 
 # ── Cargar configuración ──────────────────────────────────────────────────────
 with open("config.json", "r") as f:
@@ -16,9 +14,11 @@ CHECK_EVERY = config.get("check_interval_seconds", 120)
 
 # ── Bot setup ─────────────────────────────────────────────────────────────────
 intents = discord.Intents.default()
-intents.message_content = True
 
-bot     = commands.Bot(command_prefix="!", intents=intents)
+loop = asyncio.new_event_loop()
+asyncio.set_event_loop(loop)
+
+bot     = commands.Bot(intents=intents, loop=loop)
 storage = Storage("data.json")
 client  = WallapopClient()
 
@@ -92,7 +92,7 @@ def build_embed(item: dict, alert: dict) -> discord.Embed:
         title       = item.get("title", "Sin título")[:256],
         url         = item.get("url", ""),
         description = item.get("description", "")[:300] or "*Sin descripción*",
-        color       = discord.Color.from_str("#59CBE8"),
+        color       = discord.Color.from_rgb(89, 203, 232),
     )
     embed.set_author(name=f"🔔 Nueva alerta: {alert['keyword'].upper()}")
     embed.add_field(name="💶 Precio",    value=price_str,                 inline=True)
@@ -113,7 +113,7 @@ async def on_ready():
     print(f"✅  Bot conectado como {bot.user}  |  Revisando cada {CHECK_EVERY}s")
 
 
-@discord.slash_command(name="alerta", description="TO CHANGE")
+@bot.slash_command(name="alerta", description="TO CHANGE")
 async def add_alert(
         ctx, 
         keyword: str = discord.Option(str, "TO CHANGE", required=True), 
@@ -153,7 +153,7 @@ async def add_alert(
     await ctx.respond(embed=embed)
 
 
-@discord.slash_command(name="alertas", description="TO CHANGE")
+@bot.slash_command(name="alertas", description="TO CHANGE")
 async def list_alerts(
         ctx
     ):
@@ -178,7 +178,7 @@ async def list_alerts(
     await ctx.respond(embed=embed)
 
 
-@discord.slash_command(name="eliminar", description="TO CHANGE")
+@bot.slash_command(name="eliminar", description="TO CHANGE")
 async def remove_alert(
         ctx, 
         alert_id: str = discord.Option(str, "TO CHANGE", required=True)
@@ -191,7 +191,7 @@ async def remove_alert(
         await ctx.respond(f"❌ No encontré ninguna alerta con ID `{alert_id}`.")
 
 
-@discord.slash_command(name="buscar", description="TO CHANGE")
+@bot.slash_command(name="buscar", description="TO CHANGE")
 async def search_now(
         ctx,
         keyword: str = discord.Option(str, "TO CHANGE", required=True), 
@@ -223,7 +223,7 @@ async def search_now(
         await ctx.respond(embed=build_embed(item, alert_ctx))
 
 
-@discord.slash_command(name="ayuda", description="TO CHANGE")
+@bot.slash_command(name="ayuda", description="TO CHANGE")
 async def help_cmd(ctx):
     embed = discord.Embed(
         title       = "📖 Comandos del Bot de Wallapop",
